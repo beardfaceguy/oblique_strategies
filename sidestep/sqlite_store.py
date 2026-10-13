@@ -72,6 +72,9 @@ class SQLiteStore(DataStore):
         except (OSError, sqlite3.Error) as error:
             raise StoreError(f"cannot open SQLite database {path}: {error}") from error
 
+    def location(self) -> str:
+        return str(self.path)
+
     def _connect(self):
         # A connection per operation: MCP runs sync tools on worker threads, and
         # sqlite3 connections must not be shared across threads.

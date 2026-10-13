@@ -86,6 +86,10 @@ class DataStore(ABC):
     def get_outcomes(self, draw_id: str) -> list[Outcome]:
         """Return every outcome recorded for the draw, oldest first."""
 
+    def location(self) -> str:
+        """Where the data lives, for messages to the user."""
+        return type(self).__name__
+
     def close(self) -> None:
         pass
 

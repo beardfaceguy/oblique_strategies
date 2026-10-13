@@ -1,4 +1,6 @@
 import asyncio
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -6,7 +8,7 @@ from pathlib import Path
 
 from mcp import Client, StdioServerParameters
 
-from sidestep.server import MAX_STORED_TEXT, create_server
+from sidestep.server import MAX_STORED_TEXT, create_server, startup_warning
 from sidestep.sqlite_store import SQLiteStore
 from sidestep.store import Card
 from tests.memory_store import MemoryStore
@@ -107,6 +109,34 @@ class ServerTest(unittest.TestCase):
 
     def test_list_decks(self):
         self.assertEqual(self.call("list_decks", {})[1], "alpha: 2 cards\nbeta: 1 cards")
+
+    def test_startup_warning_only_when_there_are_no_cards(self):
+        self.assertIsNone(startup_warning(self.store))
+        warning = startup_warning(MemoryStore())
+        self.assertIn("no cards found in MemoryStore", warning)
+        self.assertIn("sidestep-import", warning)
+
+    def start_server_and_read_stderr(self, database):
+        # With stdin closed the server starts, finds no client, and exits.
+        return subprocess.run(
+            [sys.executable, "-m", "sidestep.server"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=Path(__file__).resolve().parent.parent,
+            env={**os.environ, "SIDESTEP_DATABASE_URL": f"sqlite://{database}"},
+        )
+
+    def test_server_warns_at_startup_when_database_has_no_cards(self):
+        database = Path(self.temporary_directory.name) / "empty.db"
+        result = self.start_server_and_read_stderr(database)
+        self.assertIn(f"no cards found in {database}", result.stderr)
+        self.assertEqual(result.stdout, "")
+
+        with SQLiteStore(database) as store:
+            store.save_cards(CARDS)
+        self.assertNotIn("warning", self.start_server_and_read_stderr(database).stderr)
 
     def test_serves_over_stdio_with_sqlite(self):
         database = Path(self.temporary_directory.name) / "sidestep.db"

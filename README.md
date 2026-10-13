@@ -28,7 +28,7 @@ Requires [uv](https://docs.astral.sh/uv/).
 Claude Code:
 
 ```sh
-claude mcp add sidestep -- uvx --from /absolute/path/to/oblique_strategies sidestep
+claude mcp add sidestep -- uv run --quiet --project /absolute/path/to/oblique_strategies sidestep
 ```
 
 Any other MCP client (Cursor, etc.):
@@ -37,14 +37,16 @@ Any other MCP client (Cursor, etc.):
 {
   "mcpServers": {
     "sidestep": {
-      "command": "uvx",
-      "args": ["--from", "/absolute/path/to/oblique_strategies", "sidestep"]
+      "command": "uv",
+      "args": ["run", "--quiet", "--project", "/absolute/path/to/oblique_strategies", "sidestep"]
     }
   }
 }
 ```
 
-Then import some cards (see below); the server has nothing to draw until you do.
+`uv run --project` always runs the current code in the checkout, so a `git pull` takes effect on the next start. (`uvx --from <path>` caches the first build and keeps running it.)
+
+Then import some cards (see below); the server has nothing to draw until you do, and warns at startup when the database has no cards. The warning goes to stderr, which MCP clients usually keep in their server logs rather than showing in the chat.
 
 ## Configuration
 
@@ -59,7 +61,7 @@ The database holds diffs from whatever projects your agents work on; keep it pri
 Cards live in the data store. Put them there with `sidestep-import`:
 
 ```sh
-uvx --from /absolute/path/to/oblique_strategies sidestep-import decks/debugging.toml
+uv run --project /absolute/path/to/oblique_strategies sidestep-import decks/debugging.toml
 ```
 
 - A file can hold one card or many; every card in it is imported.

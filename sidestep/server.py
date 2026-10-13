@@ -1,4 +1,5 @@
 import secrets
+import sys
 import uuid
 from datetime import datetime, timezone
 
@@ -140,8 +141,23 @@ def create_server(store: DataStore) -> MCPServer:
     return server
 
 
+def startup_warning(store: DataStore) -> str | None:
+    if store.get_cards():
+        return None
+    return (
+        f"sidestep: warning: no cards found in {store.location()}; "
+        "draw_card will fail until you import some, for example:\n"
+        "  sidestep-import decks/debugging.toml"
+    )
+
+
 def main():
     with open_store() as store:
+        # stdout carries the MCP protocol, so the warning goes to stderr, which
+        # MCP clients show in their server logs.
+        warning = startup_warning(store)
+        if warning:
+            print(warning, file=sys.stderr)
         create_server(store).run()
 
 
