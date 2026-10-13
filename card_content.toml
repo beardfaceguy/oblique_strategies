@@ -1,0 +1,42 @@
+# Card content, recorded verbatim. Same shape as the deck files: each card has
+# a stable `id` (draws are recorded against it) and the `text` of the strategy.
+
+[[card]]
+id = "remove-something"
+text = "Remove something instead of adding something, and see whether the problem gets simpler or disappears."
+
+[[card]]
+id = "why-written-this-way"
+text = "Before changing this code, use the history to find out why it was written this way, and what it might be doing that nobody intended."
+
+[[card]]
+id = "follow-existing-pattern"
+text = "Find where the codebase already solves a similar problem, and follow that pattern instead of inventing a new one."
+
+[[card]]
+id = "where-complexity-goes"
+text = "Ask where the complexity in your current approach is going, and whether you’re just moving it somewhere harder to see."
+
+[[card]]
+id = "hidden-dependency"
+text = "Assume two parts you’ve been treating as independent actually share a hidden dependency, and look for it."
+
+[[card]]
+id = "smallest-failing-version"
+text = "Shrink the problem to the smallest version that still fails, and solve only that."
+
+[[card]]
+id = "who-depends-on-it"
+text = "Treat the behavior you’re trying to change as something another part of the system depends on, and find what would break."
+
+[[card]]
+id = "tired-engineer-at-2am"
+text = "Choose the simplest solution that a tired engineer could understand and fix at 2am, even if it’s less elegant."
+
+[[card]]
+id = "real-problem-or-symptom"
+text = "Step back one level and ask whether you’re solving the real problem or a symptom of it."
+
+[[card]]
+id = "restate-the-goal"
+text = "Discard your accumulated assumptions, restate the goal in one sentence, and start again with only the files that sentence requires."
