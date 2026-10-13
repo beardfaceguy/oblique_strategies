@@ -1,0 +1,14 @@
+[project]
+name = "sidestep"
+version = "0.1.0"
+description = "MCP server that serves a random strategy card to a coding agent that is stuck."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["mcp>=2.2,<3"]
+
+[project.scripts]
+sidestep = "sidestep.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

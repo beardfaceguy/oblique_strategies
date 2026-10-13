@@ -1,0 +1,74 @@
+# Placeholder starter deck. Each [[card]] needs a unique `id` (keep it stable:
+# draws are recorded against it) and the `text` of the strategy.
+
+[[card]]
+id = "explain-in-three-sentences"
+text = "Explain the problem in three sentences to someone who has never seen this codebase."
+
+[[card]]
+id = "unchecked-assumption"
+text = "Which assumption have you never actually checked? Check it now."
+
+[[card]]
+id = "error-is-true"
+text = "Pretend the error message is literally and precisely true."
+
+[[card]]
+id = "compare-with-working"
+text = "Find a place where this already works, and compare."
+
+[[card]]
+id = "most-recent-change"
+text = "What changed most recently? Start there."
+
+[[card]]
+id = "undo-three-changes"
+text = "Undo your last three changes and approach from a different side."
+
+[[card]]
+id = "smallest-version"
+text = "Solve the smallest possible version of this problem first."
+
+[[card]]
+id = "delete-half"
+text = "Delete half of the code involved. Does the problem survive?"
+
+[[card]]
+id = "read-the-data"
+text = "You've been reading code. Read the logs, data, or network traffic instead."
+
+[[card]]
+id = "failing-test-first"
+text = "Write the failing test before touching anything else."
+
+[[card]]
+id = "most-boring-solution"
+text = "What would the most boring solution be?"
+
+[[card]]
+id = "ugly-then-right"
+text = "Make it work ugly, then make it right."
+
+[[card]]
+id = "one-level-up"
+text = "Is this the right problem, or a symptom of one level up?"
+
+[[card]]
+id = "who-depends-on-it"
+text = "Who might depend on this broken behavior?"
+
+[[card]]
+id = "know-versus-believe"
+text = "Write down what you know versus what you only believe."
+
+[[card]]
+id = "search-history"
+text = "Search the issue tracker and history instead of the code."
+
+[[card]]
+id = "remove-something"
+text = "Remove something instead of adding something."
+
+[[card]]
+id = "fresh-session"
+text = "Start a fresh session with only the essentials and see what it notices."
