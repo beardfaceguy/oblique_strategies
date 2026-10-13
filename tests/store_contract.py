@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sidestep.store import DataStore, Draw, Outcome, UnknownDrawError
+from sidestep.store import Card, DataStore, Draw, Outcome, SaveCardsResult, UnknownDrawError
 
 TIME = datetime(2026, 10, 13, 12, 0, tzinfo=timezone.utc)
 
@@ -30,6 +30,41 @@ class DataStoreContract:
     def tearDown(self):
         self.store.close()
         super().tearDown()
+
+    def test_save_and_get_cards(self):
+        cards = [
+            Card(deck="beta", id="b1", text="Beta."),
+            Card(deck="alpha", id="a2", text="Second."),
+            Card(deck="alpha", id="a1", text="First."),
+        ]
+        self.assertEqual(self.store.save_cards(cards), SaveCardsResult(added=3))
+        self.assertEqual(
+            self.store.get_cards(),
+            [cards[2], cards[1], cards[0]],
+        )
+        self.assertEqual(self.store.get_cards("alpha"), [cards[2], cards[1]])
+        self.assertEqual(self.store.get_cards("missing"), [])
+
+    def test_saving_again_updates_by_deck_and_id(self):
+        self.store.save_cards(
+            [Card(deck="alpha", id="a1", text="Old."), Card(deck="alpha", id="a2", text="Same.")]
+        )
+        result = self.store.save_cards(
+            [
+                Card(deck="alpha", id="a1", text="New."),
+                Card(deck="alpha", id="a2", text="Same."),
+                Card(deck="beta", id="a1", text="Other deck."),
+            ]
+        )
+        self.assertEqual(result, SaveCardsResult(added=1, updated=1, unchanged=1))
+        self.assertEqual(
+            self.store.get_cards(),
+            [
+                Card(deck="alpha", id="a1", text="New."),
+                Card(deck="alpha", id="a2", text="Same."),
+                Card(deck="beta", id="a1", text="Other deck."),
+            ],
+        )
 
     def test_draw_round_trip(self):
         draw = make_draw()

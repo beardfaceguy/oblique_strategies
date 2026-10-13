@@ -8,49 +8,29 @@ from mcp import Client, StdioServerParameters
 
 from sidestep.server import MAX_STORED_TEXT, create_server
 from sidestep.sqlite_store import SQLiteStore
-from sidestep.store import DataStore, Draw, Outcome, UnknownDrawError
+from sidestep.store import Card
+from tests.memory_store import MemoryStore
 
 
-class MemoryStore(DataStore):
-    """Proves the server needs nothing beyond the DataStore interface."""
-
-    def __init__(self):
-        self.draws: dict[str, Draw] = {}
-        self.outcomes: list[Outcome] = []
-
-    def record_draw(self, draw):
-        self.draws[draw.id] = draw
-
-    def record_outcome(self, outcome):
-        if outcome.draw_id not in self.draws:
-            raise UnknownDrawError(f"no draw with id '{outcome.draw_id}'")
-        self.outcomes.append(outcome)
-
-    def get_draw(self, draw_id):
-        return self.draws.get(draw_id)
-
-    def get_outcomes(self, draw_id):
-        return [outcome for outcome in self.outcomes if outcome.draw_id == draw_id]
+CARDS = [
+    Card(deck="alpha", id="a1", text="First alpha."),
+    Card(deck="alpha", id="a2", text="Second alpha."),
+    Card(deck="beta", id="b1", text="Only beta."),
+]
 
 
 class ServerTest(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
-        self.decks = Path(self.temporary_directory.name) / "decks"
-        self.decks.mkdir()
-        (self.decks / "alpha.toml").write_text(
-            '[[card]]\nid = "a1"\ntext = "First alpha."\n'
-            '[[card]]\nid = "a2"\ntext = "Second alpha."\n'
-        )
-        (self.decks / "beta.toml").write_text('[[card]]\nid = "b1"\ntext = "Only beta."\n')
         self.store = MemoryStore()
+        self.store.save_cards(CARDS)
 
     def tearDown(self):
         self.temporary_directory.cleanup()
 
     def call(self, tool, arguments):
         async def run():
-            async with Client(create_server(self.store, self.decks)) as client:
+            async with Client(create_server(self.store)) as client:
                 return await client.call_tool(tool, arguments)
 
         result = asyncio.run(run())
@@ -119,20 +99,25 @@ class ServerTest(unittest.TestCase):
         self.assertTrue(is_error)
         self.assertIn("no draw with id 'missing'", text)
 
+    def test_draw_with_no_cards_is_an_error(self):
+        self.store = MemoryStore()
+        is_error, text = self.call("draw_card", {})
+        self.assertTrue(is_error)
+        self.assertIn("sidestep-import", text)
+
     def test_list_decks(self):
         self.assertEqual(self.call("list_decks", {})[1], "alpha: 2 cards\nbeta: 1 cards")
 
     def test_serves_over_stdio_with_sqlite(self):
         database = Path(self.temporary_directory.name) / "sidestep.db"
+        with SQLiteStore(database) as store:
+            store.save_cards(CARDS)
 
         async def run():
             parameters = StdioServerParameters(
                 command=sys.executable,
                 args=["-m", "sidestep.server"],
-                env={
-                    "SIDESTEP_DATABASE_URL": f"sqlite://{database}",
-                    "SIDESTEP_DECKS": str(self.decks),
-                },
+                env={"SIDESTEP_DATABASE_URL": f"sqlite://{database}"},
                 cwd=str(Path(__file__).resolve().parent.parent),
             )
             async with Client(parameters) as client:

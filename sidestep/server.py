@@ -1,13 +1,10 @@
-import os
 import secrets
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from sidestep.cards import DEFAULT_DECKS_DIR, DeckError, load_decks
 from sidestep.store import DataStore, Draw, Outcome, StoreError, open_store
 
 # Diffs and test output can be huge; keep enough to review without bloating the store.
@@ -36,17 +33,20 @@ def now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def create_server(store: DataStore, decks_dir: Path) -> MCPServer:
+def create_server(store: DataStore) -> MCPServer:
     server = MCPServer(name="sidestep", instructions=INSTRUCTIONS)
 
     def decks():
         try:
-            loaded = load_decks(decks_dir)
-        except DeckError as error:
+            cards = store.get_cards()
+        except StoreError as error:
             raise ToolError(str(error)) from error
-        if not loaded:
-            raise ToolError(f"no decks with cards found in {decks_dir}")
-        return loaded
+        if not cards:
+            raise ToolError("there are no cards yet; import some with sidestep-import")
+        by_deck = {}
+        for card in cards:
+            by_deck.setdefault(card.deck, []).append(card)
+        return by_deck
 
     @server.tool()
     def draw_card(deck: str | None = None, context: str = "", project: str = "") -> str:
@@ -141,9 +141,8 @@ def create_server(store: DataStore, decks_dir: Path) -> MCPServer:
 
 
 def main():
-    decks_dir = Path(os.environ.get("SIDESTEP_DECKS") or DEFAULT_DECKS_DIR)
     with open_store() as store:
-        create_server(store, decks_dir).run()
+        create_server(store).run()
 
 
 if __name__ == "__main__":

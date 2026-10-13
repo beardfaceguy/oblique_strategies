@@ -3,9 +3,24 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
-from sidestep.store import DataStore, Draw, Outcome, StoreError, UnknownDrawError
+from sidestep.store import (
+    Card,
+    DataStore,
+    Draw,
+    Outcome,
+    SaveCardsResult,
+    StoreError,
+    UnknownDrawError,
+)
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS cards (
+    deck TEXT NOT NULL,
+    id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (deck, id)
+);
+
 CREATE TABLE IF NOT EXISTS draws (
     id TEXT PRIMARY KEY,
     time TEXT NOT NULL,
@@ -64,6 +79,45 @@ class SQLiteStore(DataStore):
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         return closing(connection)
+
+    def save_cards(self, cards: list[Card]) -> SaveCardsResult:
+        added = updated = unchanged = 0
+        try:
+            with self._connect() as connection, connection:
+                for card in cards:
+                    row = connection.execute(
+                        "SELECT text FROM cards WHERE deck = ? AND id = ?", (card.deck, card.id)
+                    ).fetchone()
+                    if row is None:
+                        connection.execute(
+                            "INSERT INTO cards (deck, id, text) VALUES (?, ?, ?)",
+                            (card.deck, card.id, card.text),
+                        )
+                        added += 1
+                    elif row["text"] != card.text:
+                        connection.execute(
+                            "UPDATE cards SET text = ? WHERE deck = ? AND id = ?",
+                            (card.text, card.deck, card.id),
+                        )
+                        updated += 1
+                    else:
+                        unchanged += 1
+        except sqlite3.Error as error:
+            raise StoreError(f"cannot save cards: {error}") from error
+        return SaveCardsResult(added=added, updated=updated, unchanged=unchanged)
+
+    def get_cards(self, deck: str | None = None) -> list[Card]:
+        query = "SELECT deck, id, text FROM cards"
+        parameters = ()
+        if deck is not None:
+            query += " WHERE deck = ?"
+            parameters = (deck,)
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(query + " ORDER BY deck, id", parameters).fetchall()
+        except sqlite3.Error as error:
+            raise StoreError(f"cannot read cards: {error}") from error
+        return [Card(**dict(row)) for row in rows]
 
     def record_draw(self, draw: Draw) -> None:
         try:

@@ -44,18 +44,31 @@ Any other MCP client (Cursor, etc.):
 }
 ```
 
+Then import some cards (see below); the server has nothing to draw until you do.
+
 ## Configuration
 
 | Environment variable | Default |
 | --- | --- |
 | `SIDESTEP_DATABASE_URL` | `~/.sidestep/sidestep.db` (SQLite). Accepts `sqlite:///absolute/path.db` or `sqlite:relative/path.db`. |
-| `SIDESTEP_DECKS` | The decks shipped in `sidestep/decks/` |
 
 The database holds diffs from whatever projects your agents work on; keep it private.
 
-## Decks
+## Cards and importing
 
-Each `*.toml` file in the decks directory is a deck named after the file. Every card needs a stable `id` (draws are recorded against it) and the `text` of the strategy:
+Cards live in the data store. Put them there with `sidestep-import`:
+
+```sh
+uvx --from /absolute/path/to/oblique_strategies sidestep-import decks/debugging.toml
+```
+
+- A file can hold one card or many; every card in it is imported.
+- Cards go in a deck named after the file (`debugging` above), or the one given with `--deck`.
+- A card is identified by its deck and `id`. Importing a card that already exists updates its text; draws keep the text the card had when it was drawn.
+- Every file is checked before anything is saved, so one bad file imports nothing.
+- `--database URL` imports into a different store than `SIDESTEP_DATABASE_URL`.
+
+TOML card files are an array of `[[card]]` tables, each with a stable `id` and the `text` of the strategy:
 
 ```toml
 [[card]]
@@ -63,13 +76,22 @@ id = "error-is-true"
 text = "Pretend the error message is literally and precisely true."
 ```
 
-`sidestep/decks/debugging.toml` is a placeholder starter deck.
+`decks/debugging.toml` is a placeholder starter deck for testing. `card_content.toml` holds the first ten cards of the real deck, not yet imported.
+
+### Adding a file format
+
+Everything except parsing is shared, in `sidestep/importers.py`. To support another format:
+
+1. Subclass `CardImporter`, set `format_name` and `extensions`, and implement `parse(content, default_deck)` to return `Card`s.
+2. Add an instance to `IMPORTERS`.
+
+Format detection, the `--format` option, validation (blank fields, duplicate ids) and saving pick it up automatically.
 
 ## Storage backends
 
 Everything outside the store modules talks only to the `DataStore` interface in `sidestep/store.py`. To add a backend (for example Postgres):
 
-1. Write `sidestep/postgres_store.py` with a `PostgresStore(DataStore)` implementing `record_draw`, `record_outcome`, `get_draw` and `get_outcomes`.
+1. Write `sidestep/postgres_store.py` with a `PostgresStore(DataStore)` implementing `save_cards`, `get_cards`, `record_draw`, `record_outcome`, `get_draw` and `get_outcomes`.
 2. Teach `open_store` in `sidestep/store.py` its URL scheme (`postgresql://...`).
 3. Add a test that mixes `tests.store_contract.DataStoreContract` into a `unittest.TestCase`, as `tests/test_sqlite_store.py` does. The contract tests every store must pass come for free.
 

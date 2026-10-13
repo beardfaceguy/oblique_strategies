@@ -1,7 +1,7 @@
-"""The storage interface for draws and their outcomes.
+"""The storage interface for cards, draws and outcomes.
 
-Code outside the concrete stores depends only on `DataStore`, `Draw`, `Outcome`
-and `open_store`. Adding a backend means subclassing `DataStore` and teaching
+Code outside the concrete stores depends only on `DataStore`, the record types
+here, and `open_store`. Adding a backend means subclassing `DataStore` and teaching
 `open_store` its URL scheme.
 """
 
@@ -18,6 +18,20 @@ class StoreError(Exception):
 
 class UnknownDrawError(StoreError):
     pass
+
+
+@dataclass(frozen=True)
+class Card:
+    deck: str
+    id: str
+    text: str
+
+
+@dataclass(frozen=True)
+class SaveCardsResult:
+    added: int = 0
+    updated: int = 0
+    unchanged: int = 0
 
 
 @dataclass(frozen=True)
@@ -47,6 +61,17 @@ class Outcome:
 
 
 class DataStore(ABC):
+    @abstractmethod
+    def save_cards(self, cards: list[Card]) -> SaveCardsResult:
+        """Add new cards and update the text of existing ones, all or nothing.
+
+        A card is identified by its (deck, id) pair.
+        """
+
+    @abstractmethod
+    def get_cards(self, deck: str | None = None) -> list[Card]:
+        """Return the cards in `deck`, or every card, ordered by deck then id."""
+
     @abstractmethod
     def record_draw(self, draw: Draw) -> None: ...
 

@@ -8,6 +8,7 @@ dependencies = ["mcp>=2.2,<3"]
 
 [project.scripts]
 sidestep = "sidestep.server:main"
+sidestep-import = "sidestep.import_cli:main"
 
 [build-system]
 requires = ["hatchling"]
